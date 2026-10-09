@@ -1,0 +1,29 @@
+# OS·도구가 남기는 파일
+.DS_Store
+MUJOCO_LOG.TXT
+
+# Python / uv — 가상환경은 프로젝트마다 .venv/ (uv.lock은 커밋한다)
+.venv/
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.pytest_cache/
+.ruff_cache/
+
+# 비밀값
+.env
+.env.*
+
+# 대용량 산출물 (ROADMAP §9.3) — 커밋하지 않고, 재현 명령을 각 README에 남긴다
+data/
+checkpoints/
+outputs/
+wandb/
+runs/
+*.mp4
+*.avi
+*.webm
+*.safetensors
+*.pt
+*.pth
+*.ckpt

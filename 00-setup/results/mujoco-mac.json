@@ -1,0 +1,30 @@
+{
+  "python": "3.12.13",
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "mujoco": "3.15.0",
+  "MUJOCO_GL": "cgl",
+  "sim_steps_per_s": 227457,
+  "rest_height_m": {
+    "red_cube": 0.44,
+    "green_ball": 0.44
+  },
+  "contact_ok": true,
+  "rgb_mean": {
+    "front": 44.4,
+    "top": 120.0
+  },
+  "depth_range_m": [
+    0.783,
+    55.454
+  ],
+  "render_fps": {
+    "224x224": 611.7,
+    "480x640": 544.1
+  },
+  "backends": {
+    "cgl": "ok",
+    "glfw": "ok",
+    "egl": "RuntimeError: invalid value for environment variable MUJOCO_GL: egl",
+    "osmesa": "RuntimeError: invalid value for environment variable MUJOCO_GL: osmesa"
+  }
+}

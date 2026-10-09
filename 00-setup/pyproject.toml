@@ -1,0 +1,17 @@
+[project]
+name = "setup-checks"
+version = "0.1.0"
+description = "0주차 환경 점검: PyTorch 가속기, MuJoCo 오프스크린 렌더링, LeRobot PushT 로드·재생"
+requires-python = "==3.12.*"
+dependencies = [
+    "lerobot[pusht]>=0.6.1,<0.7",
+    "mujoco>=3.15,<4",
+    "matplotlib>=3.9",
+    "wandb>=0.30,<0.31",
+]
+
+[tool.uv]
+package = false
+# gym-pusht는 opencv-python을, lerobot은 opencv-python-headless를 요구하는데 둘이 같은 cv2/ 디렉토리에
+# 설치돼 서로를 덮어쓴다. gym-pusht는 cv2.resize/drawMarker만 쓰므로 headless 하나로 충분하다.
+exclude-dependencies = ["opencv-python"]

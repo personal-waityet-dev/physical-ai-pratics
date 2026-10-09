@@ -4,4 +4,5 @@ Physical AI — 체화 정책(VLA), 세계 모델·World Action Model, 물리·�
 
 - **계획표**: [ROADMAP.md](ROADMAP.md) — 연구 지형(2026-09), 논문별 위치, 지식 모듈, 일정표, 프로젝트 카드, 진행 현황
 - **논문**: [docs/papers/](docs/papers/) · 논문 노트는 `docs/notes/`
+- **환경**: [00-setup/](00-setup/) — 0주차 환경 점검(MPS·MuJoCo·LeRobot)과 클라우드 리허설 스크립트, uv 규약
 - **프로젝트**: 루트의 `NN-slug/` 디렉토리 (예: `01-vlm-from-llm/`). 각 디렉토리의 `README.md`가 그 프로젝트의 목표와 결과 보고서다.

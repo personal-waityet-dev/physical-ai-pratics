@@ -1,0 +1,40 @@
+{
+  "python": "3.12.13",
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "machine": "arm64",
+  "torch": "2.11.0",
+  "device": "mps",
+  "PYTORCH_ENABLE_MPS_FALLBACK": null,
+  "gpu": {
+    "recommended_max_memory_gb": 13.3
+  },
+  "dtype_support": {
+    "torch.float16": "ok",
+    "torch.bfloat16": "ok",
+    "torch.float64": "TypeError: Cannot convert a MPS Tensor to float64 dtype as the MPS framework doesn't support float64. Please us"
+  },
+  "matmul_tflops": {
+    "cpu_fp32": 1.28,
+    "mps_float32": 4.85,
+    "mps_float16": 5.94,
+    "mps_bfloat16": 5.9
+  },
+  "train_step_vs_cpu": {
+    "loss_abs_diff": 0.0,
+    "param_max_abs_diff": 1.0728836059570312e-06
+  },
+  "mps_fallback": {
+    "linalg.qr": {
+      "fallback=0": "NotImplementedError",
+      "fallback=1": "ok 11.1ms"
+    },
+    "linalg.eigh": {
+      "fallback=0": "NotImplementedError",
+      "fallback=1": "ok 27.7ms"
+    },
+    "pca_lowrank": {
+      "fallback=0": "NotImplementedError",
+      "fallback=1": "ok 51.2ms"
+    }
+  }
+}
