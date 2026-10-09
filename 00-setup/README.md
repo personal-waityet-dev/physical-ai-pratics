@@ -68,10 +68,11 @@ uv run python scripts/log_wandb.py               # 위 결과를 W&B run 하나�
 **클라우드 (RunPod)**
 - **GPU 학습은 Mac보다 약 25배 빠르고 CPU 일은 오히려 느리다.** bf16 matmul은 146.5 vs 5.9 TFLOPS지만, 할당된 vCPU(EPYC 7532, 2.4GHz)는 M3 Pro보다 단일 스레드가 느려 MuJoCo 물리는 약 0.5배, PushT env는 약 0.43배다. 시뮬레이터 롤아웃이 많은 평가(P04 이후 성공률 측정)는 클라우드에서 env를 병렬화하지 않으면 GPU가 놀게 된다.
 - **EGL이 GPU로 렌더한다.** `NVIDIA_DRIVER_CAPABILITIES=compute,utility`인데도 `libEGL_nvidia`가 들어 있어 `GL_RENDERER`가 RTX 4090으로 잡힌다. 렌더는 Mac의 3.7–6배다. OSMesa 폴백은 이번엔 필요 없었다.
-- **템플릿에 든 uv가 낡았다.** RunPod PyTorch 템플릿은 uv 0.9.0(`/usr/bin/uv`)이라 `[tool.uv] exclude-dependencies`를 못 읽고 경고를 낸다. 이번엔 `--locked`가 lock을 따라 환경은 맞게 깔렸다(opencv는 headless만). 이후 `rehearsal.sh`는 항상 최신 uv를 `~/.local/bin`에 설치해 PATH 앞에 둔다(아직 Pod에서 재검증 전).
+- **템플릿에 든 uv가 낡았다.** RunPod PyTorch 템플릿은 uv 0.9.0(`/usr/bin/uv`)이라 `[tool.uv] exclude-dependencies`를 못 읽고 경고를 낸다. 이번엔 `--locked`가 lock을 따라 환경은 맞게 깔렸다(opencv는 headless만). 이후 `rehearsal.sh`는 항상 최신 uv를 `~/.local/bin`에 설치해 PATH 앞에 둔다(두 번째 Pod에서 uv 0.12.24로 확인).
 - **Linux에서는 torchcodec이 바로 동작한다**(apt ffmpeg). 디코딩이 Mac pyav보다 2배 빠르다.
 - **SSH 첫 접속의 `yes/no/[fingerprint]` 질문을 비밀번호 프롬프트로 오해하기 쉽다.** 키 인증은 정상이었다.
 - 배포할 때 W&B 키 매핑을 빠뜨려 클라우드에서는 업로드를 건너뛰었다. scp로 회수한 뒤 Mac에서 `log_wandb.py --tag linux`로 올렸다.
+- **두 번째 Pod(키 매핑 포함)에서는 클라우드에서 W&B로 바로 업로드됐다.** 배포 화면 템플릿 카드의 Set overrides → Environment variables에 매핑을 넣는다. 오버라이드는 그 Pod에만 적용된다. 키는 SSH 세션 환경변수로 오지 않고 `/etc/rp_environment`에만 들어간다. 이 파일은 `PATH`도 export하므로 그대로 source하면 최신 uv가 밀려난다. 첫 수정본에서 이 버그를 실제로 겪었고, 지금은 서브셸에서 키만 꺼낸다.
 - 4090 시간당 가격이 $0.89로 ROADMAP §9.2의 $0.34–0.74보다 높았다. P10·P14 예산을 잡을 때 실제 배포 화면 가격으로 다시 계산한다.
 
 ## 실험 기록 규약 (W&B)

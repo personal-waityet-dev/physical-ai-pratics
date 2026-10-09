@@ -49,9 +49,14 @@ SDL_VIDEODRIVER=dummy uv run python scripts/check_pusht.py
 # 6. W&B: 키가 있으면 결과를 Mac run과 같은 프로젝트에 올린다.
 #    키를 찾는 순서: WANDB_API_KEY → RunPod secret(RUNPOD_SECRET_wandb_api_key).
 #    RunPod 템플릿은 컨테이너 환경변수를 /etc/rp_environment에 남겨 SSH 세션이 읽게 하므로 그것도 읽는다.
+#    이 파일은 PATH도 export하므로 그대로 source하면 2단계에서 앞에 둔 최신 uv가 밀려난다 → 서브셸에서 키만 꺼낸다.
 if [ -z "${WANDB_API_KEY:-}" ] && [ -f /etc/rp_environment ]; then
   # shellcheck disable=SC1091
-  . /etc/rp_environment
+  WANDB_API_KEY="$(
+    set +eu
+    . /etc/rp_environment >/dev/null 2>&1
+    printf '%s' "${WANDB_API_KEY:-${RUNPOD_SECRET_wandb_api_key:-${RUNPOD_SECRET_WANDB_API_KEY:-}}}"
+  )" || true
 fi
 WANDB_API_KEY="${WANDB_API_KEY:-${RUNPOD_SECRET_wandb_api_key:-${RUNPOD_SECRET_WANDB_API_KEY:-}}}"
 if [ -n "$WANDB_API_KEY" ]; then
