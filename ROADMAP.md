@@ -654,6 +654,7 @@ physical-ai-pratics/
 ├── 00-setup/             # 0주차 환경 점검 스크립트 + 클라우드 리허설 스크립트
 ├── 01-vlm-from-llm/
 │   ├── README.md         # 프로젝트 카드 → 결과 보고서
+│   ├── GUIDE.md          # Claude가 쓰는 학습 가이드 (읽기·예측 질문, 검증 기준 — 정답 없음)
 │   ├── pyproject.toml    # uv 독립 환경
 │   ├── src/  scripts/  notebooks/
 │   └── results/          # 작은 그래프·표만 커밋
