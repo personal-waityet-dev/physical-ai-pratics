@@ -1,0 +1,114 @@
+{
+  "python": "3.12.3",
+  "platform": "Linux-6.8.0-124-generic-x86_64-with-glibc2.39",
+  "dataset": {
+    "repo_id": "lerobot/pusht",
+    "codebase_version": "v3.0",
+    "episodes": 206,
+    "frames": 25650,
+    "fps": 10,
+    "features": {
+      "observation.image": [
+        "video",
+        [
+          96,
+          96,
+          3
+        ]
+      ],
+      "observation.state": [
+        "float32",
+        [
+          2
+        ]
+      ],
+      "action": [
+        "float32",
+        [
+          2
+        ]
+      ],
+      "episode_index": [
+        "int64",
+        [
+          1
+        ]
+      ],
+      "frame_index": [
+        "int64",
+        [
+          1
+        ]
+      ],
+      "timestamp": [
+        "float32",
+        [
+          1
+        ]
+      ],
+      "next.reward": [
+        "float32",
+        [
+          1
+        ]
+      ],
+      "next.done": [
+        "bool",
+        [
+          1
+        ]
+      ],
+      "next.success": [
+        "bool",
+        [
+          1
+        ]
+      ],
+      "index": [
+        "int64",
+        [
+          1
+        ]
+      ],
+      "task_index": [
+        "int64",
+        [
+          1
+        ]
+      ]
+    },
+    "load_s": 4.48,
+    "episodes_with_success_label": 0,
+    "episode_max_reward": {
+      "median": 0.896,
+      "min": 0.813,
+      "max": 0.949
+    }
+  },
+  "video_backend": "torchcodec",
+  "decode_ms_per_frame": 0.82,
+  "episode": {
+    "index": 0,
+    "length": 161,
+    "task": "Push the T-shaped block onto the T-shaped target.",
+    "demo_success": false,
+    "action_range": [
+      [
+        93.0,
+        71.0
+      ],
+      [
+        375.0,
+        449.0
+      ]
+    ]
+  },
+  "replay": {
+    "agent_pos_err_px": {
+      "mean": 0.0,
+      "max": 0.0
+    },
+    "workspace_px": 512,
+    "env_step_hz": 381
+  }
+}

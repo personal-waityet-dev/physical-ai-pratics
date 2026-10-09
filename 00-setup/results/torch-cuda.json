@@ -1,0 +1,28 @@
+{
+  "python": "3.12.3",
+  "platform": "Linux-6.8.0-124-generic-x86_64-with-glibc2.39",
+  "machine": "x86_64",
+  "torch": "2.11.0+cu130",
+  "device": "cuda",
+  "PYTORCH_ENABLE_MPS_FALLBACK": null,
+  "gpu": {
+    "name": "NVIDIA GeForce RTX 4090",
+    "memory_gb": 23.5,
+    "cuda": "13.0"
+  },
+  "dtype_support": {
+    "torch.float16": "ok",
+    "torch.bfloat16": "ok",
+    "torch.float64": "ok"
+  },
+  "matmul_tflops": {
+    "cpu_fp32": 0.45,
+    "cuda_float32": 58.45,
+    "cuda_float16": 160.25,
+    "cuda_bfloat16": 146.52
+  },
+  "train_step_vs_cpu": {
+    "loss_abs_diff": 0.0,
+    "param_max_abs_diff": 1.0058283805847168e-06
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "python": "3.12.3",
+  "platform": "Linux-6.8.0-124-generic-x86_64-with-glibc2.39",
+  "mujoco": "3.15.0",
+  "MUJOCO_GL": "egl",
+  "sim_steps_per_s": 125084,
+  "rest_height_m": {
+    "red_cube": 0.44,
+    "green_ball": 0.44
+  },
+  "contact_ok": true,
+  "rgb_mean": {
+    "front": 44.4,
+    "top": 119.9
+  },
+  "depth_range_m": [
+    0.783,
+    55.454
+  ],
+  "render_fps": {
+    "224x224": 3799.8,
+    "480x640": 2034.5
+  },
+  "backends": {
+    "cgl": "RuntimeError: invalid value for environment variable MUJOCO_GL: cgl",
+    "glfw": "mujoco.FatalError: an OpenGL platform library has not been loaded into this process, this most likely means that a valid",
+    "egl": "ok",
+    "osmesa": "AttributeError: module 'mujoco' has no attribute 'Renderer'"
+  }
+}

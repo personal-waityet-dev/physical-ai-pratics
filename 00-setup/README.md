@@ -28,18 +28,22 @@ uv run python scripts/log_wandb.py               # 위 결과를 W&B run 하나�
 | 노트 템플릿 | 완료 | [`docs/notes/_template.md`](../docs/notes/_template.md) |
 | 저장소 규약 파일 | 완료 | 루트 `.gitignore`(대용량 산출물·가상환경 제외), `.gitattributes`(PDF를 바이너리로) |
 | 실험 기록 도구 결정 | 완료 | **W&B** — LeRobot 학습 스크립트가 W&B만 지원(`--wandb.enable=true`), Mac·클라우드 run을 한곳에 모음. 아래 "실험 기록 규약" |
-| 클라우드 GPU 리허설 | **남음** | 스크립트 준비 완료 — 아래 "클라우드 리허설" |
+| 클라우드 GPU 리허설 | 완료 | RunPod RTX 4090 (2026-10-09) — [`results/torch-cuda.json`](results/torch-cuda.json), [`mujoco-linux.json`](results/mujoco-linux.json), [`pusht-linux.json`](results/pusht-linux.json), W&B run `env-check-linux-cuda` |
 
-## 결과 (Mac: M3 Pro 18GB, macOS 26.6)
+## 결과
 
-| 항목 | Mac (MPS) | 클라우드 (RTX 4090) |
+| 항목 | Mac (MPS) | 클라우드 (RunPod RTX 4090) |
 |---|---|---|
-| matmul fp32 / bf16 (TFLOPS, 4096²) | 4.9 / 5.9 (CPU fp32 1.3) | 리허설 후 기입 |
-| 가속기 메모리 상한 | 13.3GB (`recommended_max_memory`) | |
-| 학습 1스텝 장치-CPU 파라미터 차이 | 1.1e-6 | |
-| MuJoCo 렌더 fps (224² / 640×480) | 약 610 / 545 (`cgl`) | |
-| PushT 비디오 디코딩 (96², 프레임당) | 1.7–1.9ms (`pyav`) | |
-| PushT env step | 약 890 step/s | |
+| 환경 | M3 Pro 18GB, macOS 26.6 | RTX 4090 24GB, 드라이버 580, CUDA 13.0(torch `cu130`), Ubuntu 24.04, EPYC 7532 vCPU 12개 |
+| matmul fp32 / bf16 (TFLOPS, 4096²) | 4.9 / 5.9 (CPU fp32 1.3) | 58.5 / 146.5 (fp16 160.3, CPU fp32 0.45) |
+| 가속기 메모리 상한 | 13.3GB (`recommended_max_memory`) | 23.5GB |
+| float64 | 미지원 | 지원 |
+| 학습 1스텝 장치-CPU 파라미터 차이 | 1.1e-6 | 1.0e-6 |
+| MuJoCo 렌더 fps (224² / 640×480) | 약 610 / 545 (`cgl`) | 약 3,800 / 2,035 (`egl`, GPU 렌더) |
+| MuJoCo 물리 스텝 (단순 장면) | 약 23–25만 step/s | 약 12.5만 step/s |
+| PushT 비디오 디코딩 (96², 프레임당) | 1.7–1.9ms (`pyav`) | 0.82ms (`torchcodec` + apt ffmpeg) |
+| PushT env step | 약 890 step/s | 약 380 step/s |
+| 시간당 비용 | — | $0.89 (On-Demand, 배포 화면 표시가) |
 
 ## 발견한 것 — 이후 프로젝트에 주는 함의
 
@@ -60,6 +64,15 @@ uv run python scripts/log_wandb.py               # 위 결과를 W&B run 하나�
 - 실행 시 objc "Class … is implemented in both" 경고가 나온다. opencv-headless 휠이 SDL2·ffmpeg dylib를 자체 포함해서 pygame·av와 중복 로드되기 때문이다. 지금은 무해하지만, 원인 모를 크래시가 나면 가장 먼저 의심한다.
 - **PushT 행동 = 에이전트 목표 위치**(절대 픽셀 좌표 0–512, 10Hz, PD 추종). 에이전트는 KINEMATIC 강체라 블록에 밀리지 않는다. 그래서 데모 행동을 열린 루프로 재생하면 에이전트 궤적이 데이터셋 상태와 정확히 일치한다(오차 0.0px). 반면 데이터셋에 T 블록 포즈가 없어서 데모 전체는 재현할 수 없다. P03의 행동 공간 비교표에 넣을 첫 항목이다.
 - **데이터셋의 성공 라벨**: 206개 에피소드 모두 `next.success`가 False이고, 에피소드별 최대 `next.reward`는 중앙값 0.896(범위 0.813–0.949)이다. env의 성공 기준은 커버리지 > 0.95다. **P04에서 성공률을 논문·LeRobot 보고치와 비교하기 전에 성공 판정 정의부터 확인**한다.
+
+**클라우드 (RunPod)**
+- **GPU 학습은 Mac보다 약 25배 빠르고 CPU 일은 오히려 느리다.** bf16 matmul은 146.5 vs 5.9 TFLOPS지만, 할당된 vCPU(EPYC 7532, 2.4GHz)는 M3 Pro보다 단일 스레드가 느려 MuJoCo 물리는 약 0.5배, PushT env는 약 0.43배다. 시뮬레이터 롤아웃이 많은 평가(P04 이후 성공률 측정)는 클라우드에서 env를 병렬화하지 않으면 GPU가 놀게 된다.
+- **EGL이 GPU로 렌더한다.** `NVIDIA_DRIVER_CAPABILITIES=compute,utility`인데도 `libEGL_nvidia`가 들어 있어 `GL_RENDERER`가 RTX 4090으로 잡힌다. 렌더는 Mac의 3.7–6배다. OSMesa 폴백은 이번엔 필요 없었다.
+- **템플릿에 든 uv가 낡았다.** RunPod PyTorch 템플릿은 uv 0.9.0(`/usr/bin/uv`)이라 `[tool.uv] exclude-dependencies`를 못 읽고 경고를 낸다. 이번엔 `--locked`가 lock을 따라 환경은 맞게 깔렸다(opencv는 headless만). 이후 `rehearsal.sh`는 항상 최신 uv를 `~/.local/bin`에 설치해 PATH 앞에 둔다(아직 Pod에서 재검증 전).
+- **Linux에서는 torchcodec이 바로 동작한다**(apt ffmpeg). 디코딩이 Mac pyav보다 2배 빠르다.
+- **SSH 첫 접속의 `yes/no/[fingerprint]` 질문을 비밀번호 프롬프트로 오해하기 쉽다.** 키 인증은 정상이었다.
+- 배포할 때 W&B 키 매핑을 빠뜨려 클라우드에서는 업로드를 건너뛰었다. scp로 회수한 뒤 Mac에서 `log_wandb.py --tag linux`로 올렸다.
+- 4090 시간당 가격이 $0.89로 ROADMAP §9.2의 $0.34–0.74보다 높았다. P10·P14 예산을 잡을 때 실제 배포 화면 가격으로 다시 계산한다.
 
 ## 실험 기록 규약 (W&B)
 
@@ -99,10 +112,11 @@ uv run python scripts/log_wandb.py               # 위 결과를 W&B run 하나�
    - 템플릿: Runpod PyTorch.
    - 디스크: 기본값.
    - 접속 정보는 Pod의 Connect 버튼에 나온다.
+   - 처음 접속하면 `Are you sure you want to continue connecting (yes/no/[fingerprint])?`가 나온다. 비밀번호 프롬프트가 아니라 서버 호스트 키 확인이므로 `yes`를 끝까지 입력한다. 그냥 Enter를 누르면 `Host key verification failed`로 끝난다.
    ```bash
    curl -LsSf https://raw.githubusercontent.com/personal-waityet-dev/physical-ai-pratics/main/00-setup/cloud/rehearsal.sh | bash
    ```
-5. Mac의 저장소 루트에서 결과를 회수한다. 스크립트가 끝날 때 명령을 출력한다. scp는 Connect 탭에 **"SSH over exposed TCP"**(공개 IP)가 있는 Pod에서만 된다(기본 SSH 프록시는 scp 미지원). 없으면 W&B run의 Files 탭에서 JSON을 받는다.
+5. Mac의 저장소 루트에서 결과를 회수한다. 스크립트가 끝날 때 명령을 출력한다. scp는 Connect 탭에 **"SSH over exposed TCP"**(공개 IP)가 있는 Pod에서만 된다(기본 SSH 프록시는 scp 미지원). 없으면 W&B run의 Files 탭에서 JSON을 받는다. 반대로 Pod에 W&B 키 매핑을 빠뜨렸다면 scp로 회수한 뒤 Mac에서 `uv run python scripts/log_wandb.py --tag linux`로 올린다.
    ```bash
    scp -P <port> <user>@<host>:~/setup-results.tgz /tmp/ && tar xzf /tmp/setup-results.tgz -C 00-setup/
    ```
@@ -114,4 +128,4 @@ uv run python scripts/log_wandb.py               # 위 결과를 W&B run 하나�
 ## 남은 일
 
 - [x] W&B 로그인 (2026-10-09, `~/.netrc`)
-- [ ] 클라우드 리허설(위 절차) 후 결과표 클라우드 열 채우기
+- [x] 클라우드 리허설 후 결과표 클라우드 열 채우기 (2026-10-09)

@@ -604,7 +604,7 @@ LIBERO는 macOS를 공식 지원하지 않으므로 학습·데이터 처리는 
 - [x] PyTorch MPS 동작 확인, 미지원 연산 대비 `PYTORCH_ENABLE_MPS_FALLBACK=1`의 의미 이해
 - [x] MuJoCo 설치와 오프스크린 렌더링 확인 — macOS에서는 `MUJOCO_GL=cgl` 또는 `glfw`만 동작하므로 문서의 `egl` 설정을 그대로 쓰지 않는다. LeRobot 설치 후 `lerobot/pusht` 로드·재생
 - [x] 실험 기록 도구 결정(W&B 또는 TensorBoard) → **W&B** (LeRobot 학습 스크립트가 W&B만 지원, 규약은 `00-setup/README.md`) — 모든 결과에 시드·에피소드 수·신뢰구간을 남긴다
-- [ ] 클라우드 GPU 리허설 1회: 인스턴스 생성 → git으로 코드 동기화 → 스크립트 실행 → 결과 회수 → **인스턴스 종료**. 비용 알림 설정
+- [x] 클라우드 GPU 리허설 1회: 인스턴스 생성 → git으로 코드 동기화 → 스크립트 실행 → 결과 회수 → **인스턴스 종료**. 비용 알림 설정 → RunPod RTX 4090, 선불 $10·auto-pay 끔 (2026-10-09)
 - [x] `docs/notes/` 노트 템플릿(§9.4) 만들기 → [`docs/notes/_template.md`](docs/notes/_template.md)
 
 실행 기록과 발견 사항: [`00-setup/README.md`](00-setup/README.md) (2026-10-09)
@@ -619,7 +619,7 @@ M3 Pro의 메모리 대역폭(150GB/s)은 M3 Max(300–400GB/s)의 절반 이하
 | **가능하지만 빠듯함** | LIBERO(LeRobot extra가 macOS에서 시뮬레이터를 조용히 빼먹음 — 수동 설치 필요, 성공 사례 1건) · 이미지 기반 Diffusion Policy 학습(배치 8에 8–14GB) · SmolVLA 적합(CUDA에서도 10–16GB) · π0/π0.5 추론(≈14GB, `torch.compile` 끄기) · ALOHA-sim·Meta-World 렌더링 |
 | **NVIDIA GPU 필요** | openpi 전체(Ubuntu + NVIDIA 전용) · SimplerEnv(SAPIEN이 Linux x86_64 전용, Vulkan 필요) · CogACT(fp32 약 30GB) · Cosmos 전 계열(Predict2.5-2B 32.5GB, Reason2-2B 24GB 이상) · 대형 인터랙티브 세계 모델(24GB 이상) · RTC-Kinetix 원본 파이프라인(JAX CUDA 고정) |
 
-> 0주차 실측: MPS가 쓸 수 있는 메모리 상한(`recommended_max_memory`)은 18GB가 아니라 **13.3GB**다. 그래서 위 표 "빠듯함" 칸의 14GB급 추론(π0/π0.5)은 기본 계획을 클라우드로 둔다. 또 `linalg.qr`·`linalg.eigh`에 MPS 커널이 없어서 PCA와 직교 초기화는 CPU로 옮겨야 한다.
+> 0주차 실측: MPS가 쓸 수 있는 메모리 상한(`recommended_max_memory`)은 18GB가 아니라 **13.3GB**다. 그래서 위 표 "빠듯함" 칸의 14GB급 추론(π0/π0.5)은 기본 계획을 클라우드로 둔다. 또 `linalg.qr`·`linalg.eigh`에 MPS 커널이 없어서 PCA와 직교 초기화는 CPU로 옮겨야 한다. 클라우드 리허설(RunPod RTX 4090)에서는 bf16 matmul이 Mac의 약 25배였지만, 할당 vCPU가 느려 시뮬레이터 스텝은 Mac의 0.4–0.5배였다. 그래서 롤아웃이 많은 평가는 env를 병렬화한다. 배포 화면의 4090 가격은 아래 표보다 높은 $0.89/시간이었다.
 
 **GPU 선택과 가격** (온디맨드, 2026-09-27 RunPod·Lambda·Vast.ai 공개 가격 기준 대략치. 저장·전송·설정 시간 제외)
 
@@ -696,7 +696,7 @@ physical-ai-pratics/
 
 | 프로젝트 | 상태 | 시작 | 완료 | 논문 노트 | 핵심 결과 |
 |---|---|---|---|---|---|
-| 0주차 준비 | 진행 | 2026-10-09 | | — | 로컬 점검 완료(MPS·MuJoCo·LeRobot PushT). W&B 결정·로그인 완료. 남은 일: 클라우드 리허설 → [00-setup](00-setup/README.md) |
+| 0주차 준비 | 완료 | 2026-10-09 | 2026-10-09 | — | Mac·RunPod 4090 점검 완료, W&B 기록. MPS 메모리 상한 13.3GB, 4090 bf16은 Mac의 25배인데 CPU 시뮬은 0.5배 → [00-setup](00-setup/README.md) |
 | P01 VLM 해부 | 예정 | | | `vlm-basics.md` | |
 | P02 적합 메커니즘 | 예정 | | | `2402.14811.md` | |
 | P03 시뮬레이터·행동 공간 | 예정 | | | `action-spaces.md` | |

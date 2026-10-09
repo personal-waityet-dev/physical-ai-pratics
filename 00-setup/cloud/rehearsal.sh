@@ -19,11 +19,11 @@ if command -v apt-get >/dev/null; then
   DEBIAN_FRONTEND=noninteractive $SUDO apt-get install -y -qq git curl libegl1 libgl1 libgles2 libosmesa6 ffmpeg >/dev/null
 fi
 
-# 2. uv
-if ! command -v uv >/dev/null; then
-  curl -LsSf https://astral.sh/uv/install.sh | sh
-  export PATH="$HOME/.local/bin:$PATH"
-fi
+# 2. uv — 템플릿에 든 uv는 오래됐을 수 있다(RunPod PyTorch 템플릿은 0.9.0이라 [tool.uv] exclude-dependencies를 못 읽는다).
+#    항상 최신을 ~/.local/bin에 설치하고 PATH 앞에 둔다.
+curl -LsSf https://astral.sh/uv/install.sh | env UV_NO_MODIFY_PATH=1 sh
+export PATH="$HOME/.local/bin:$PATH"
+uv --version
 
 # 3. 코드 (git으로만 동기화한다)
 if [ -d "$WORKDIR/.git" ]; then
