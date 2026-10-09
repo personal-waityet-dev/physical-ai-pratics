@@ -47,6 +47,8 @@ def main() -> None:
     for name, report in reports.items():
         run.summary.update(flatten(report, f"{name}/"))
     run.log({p.stem: wandb.Image(str(p)) for p in sorted(RESULTS.glob(f"*-{tag}.png"))})
+    for f in [*files, *RESULTS.glob("nvidia-smi.csv")]:  # scp가 안 되는 Pod에서도 원본을 회수할 수 있게
+        run.save(str(f), base_path=str(RESULTS), policy="now")
     run.finish()
 
 

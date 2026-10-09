@@ -46,11 +46,19 @@ uv run python scripts/check_torch.py
 MUJOCO_GL=egl uv run python scripts/check_mujoco.py --probe || MUJOCO_GL=osmesa uv run python scripts/check_mujoco.py --probe
 SDL_VIDEODRIVER=dummy uv run python scripts/check_pusht.py
 
-# 6. W&B: 제공자 secret으로 WANDB_API_KEY를 넣어 두었다면 결과를 Mac run과 같은 프로젝트에 올린다
-if [ -n "${WANDB_API_KEY:-}" ]; then
+# 6. W&B: 키가 있으면 결과를 Mac run과 같은 프로젝트에 올린다.
+#    키를 찾는 순서: WANDB_API_KEY → RunPod secret(RUNPOD_SECRET_wandb_api_key).
+#    RunPod 템플릿은 컨테이너 환경변수를 /etc/rp_environment에 남겨 SSH 세션이 읽게 하므로 그것도 읽는다.
+if [ -z "${WANDB_API_KEY:-}" ] && [ -f /etc/rp_environment ]; then
+  # shellcheck disable=SC1091
+  . /etc/rp_environment
+fi
+WANDB_API_KEY="${WANDB_API_KEY:-${RUNPOD_SECRET_wandb_api_key:-${RUNPOD_SECRET_WANDB_API_KEY:-}}}"
+if [ -n "$WANDB_API_KEY" ]; then
+  export WANDB_API_KEY
   uv run python scripts/log_wandb.py
 else
-  echo "WANDB_API_KEY가 없어 W&B 기록은 건너뛴다"
+  echo "W&B 키가 없어 기록은 건너뛴다 (00-setup/README.md '클라우드 리허설' 참고)"
 fi
 
 # 7. 결과 묶음

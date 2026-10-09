@@ -73,21 +73,43 @@ uv run python scripts/log_wandb.py               # 위 결과를 W&B run 하나�
 
 목표는 "인스턴스 생성 → git으로 코드 동기화 → 스크립트 실행 → 결과 회수 → 인스턴스 종료"를 한 번 끝까지 해 보는 것이다. 예상 비용은 RTX 4090 30분, $0.5 미만이다.
 
-1. **(직접)** 클라우드 계정을 만들고 결제 수단과 **지출 한도·알림**을 설정한다. 선불 크레딧 방식(RunPod, Vast.ai)이면 충전액이 사실상 상한이므로 $10 정도만 충전한다. 제공자의 secret 기능에 `WANDB_API_KEY`를 등록해 두면 이후 모든 인스턴스에 자동으로 주입된다(키는 https://wandb.ai/authorize).
-2. 이 디렉토리의 변경을 GitHub `main`에 push한다. 스크립트가 GitHub에서 sparse clone한다.
-3. RTX 4090 인스턴스를 띄운다(Ubuntu + PyTorch 템플릿, SSH 키 등록).
-4. SSH로 접속해 실행한다.
+1. **(직접) RunPod 계정과 지출 상한** — 선불 크레딧 + 자동 충전 끔 = 충전액이 곧 상한이다.
+   - [console.runpod.io/signup](https://www.console.runpod.io/signup)에서 가입하고 이메일 인증, 2단계 인증을 켠다.
+   - Billing에서 카드를 등록하고 **$10만 충전**한다. **Auto-pay는 켜지 않는다**(켜면 잔액이 기준 아래로 내려갈 때마다 카드에서 자동 충전돼 상한이 사라진다).
+   - Billing에서 **잔액 부족 알림**(예: $3)을 설정한다.
+   - 기본 "spend limit $80/시간"은 시간당 사용 속도 제한일 뿐 총액 상한이 아니다.
+   - 잔액이 $0이 되면 실행 중인 Pod가 자동으로 멈춘다. network volume이 없는 Pod는 **terminate되어 데이터가 사라진다**. 리허설은 잃을 데이터가 없지만, 이후 프로젝트의 체크포인트는 Pod에만 두지 않는다(W&B artifact·HF Hub·rsync로 회수).
+   - 요금 구조:
+     - 연산은 초 단위로 과금된다.
+     - container disk는 stop하면 과금되지 않는다.
+     - volume disk는 stop한 동안 $0.20/GB/월이다(실행 중 $0.10).
+     - network volume은 항상 $0.07/GB/월이다.
+     - 그래서 끝낼 때는 stop이 아니라 terminate한다.
+2. **(직접) SSH 키 등록** — 한 번만 하면 이후 모든 Pod에 자동으로 들어간다.
+   ```bash
+   ssh-keygen -t ed25519 -C "mac-m3pro"
+   ```
+   ```bash
+   pbcopy < ~/.ssh/id_ed25519.pub
+   ```
+   콘솔 Credentials 페이지의 SSH Public Keys 탭에서 Add SSH Key로 붙여넣는다.
+3. **(직접) W&B 키를 secret으로** — 같은 Credentials 페이지의 Secrets 탭에 이름 `wandb_api_key`, 값은 [wandb.ai/authorize](https://wandb.ai/authorize)의 키로 만든다. Pod를 띄울 때 Environment Variables에 `WANDB_API_KEY` = `{{ RUNPOD_SECRET_wandb_api_key }}`를 추가한다(열쇠 아이콘으로 선택 가능). 스크립트는 `WANDB_API_KEY`가 없으면 `RUNPOD_SECRET_wandb_api_key`와 `/etc/rp_environment`도 찾는다. 셋 다 실패하면 W&B만 건너뛰고 나머지는 진행한다.
+4. **(직접) Pod 실행** — Pods → Deploy에서 다음과 같이 고르고 SSH로 접속해 실행한다.
+   - GPU: RTX 4090, On-Demand. Community Cloud는 시간당 약 $0.34이고 개인 호스트라 품질 편차가 있다. Secure Cloud는 약 $0.69–0.74다.
+   - 템플릿: Runpod PyTorch.
+   - 디스크: 기본값.
+   - 접속 정보는 Pod의 Connect 버튼에 나온다.
    ```bash
    curl -LsSf https://raw.githubusercontent.com/personal-waityet-dev/physical-ai-pratics/main/00-setup/cloud/rehearsal.sh | bash
    ```
-5. Mac의 저장소 루트에서 결과를 회수한다. 스크립트가 끝날 때 명령을 출력한다.
+5. Mac의 저장소 루트에서 결과를 회수한다. 스크립트가 끝날 때 명령을 출력한다. scp는 Connect 탭에 **"SSH over exposed TCP"**(공개 IP)가 있는 Pod에서만 된다(기본 SSH 프록시는 scp 미지원). 없으면 W&B run의 Files 탭에서 JSON을 받는다.
    ```bash
    scp -P <port> <user>@<host>:~/setup-results.tgz /tmp/ && tar xzf /tmp/setup-results.tgz -C 00-setup/
    ```
-6. **인스턴스를 terminate하고, 콘솔에서 실행 중인 인스턴스가 0인지 확인한다.** stop만 하면 디스크 비용이 계속 나간다.
+6. **Pod를 terminate(휴지통 아이콘)하고, 콘솔에서 Pod가 0개이고 Billing의 시간당 사용액이 $0인지 확인한다.** stop만 하면 디스크 비용이 계속 나간다.
 7. 위 결과표의 "클라우드" 열을 채운다.
 
-[`cloud/rehearsal.sh`](cloud/rehearsal.sh)가 처리하는 일은 다음과 같다. apt로 EGL/OSMesa·ffmpeg 설치, uv 설치, `00-setup`과 `common`만 sparse clone(PDF 90MB 제외), `uv sync --locked`, 점검 3종, 그리고 `WANDB_API_KEY`가 있으면 W&B 업로드. MuJoCo는 EGL을 먼저 시도하고, 컨테이너에 NVIDIA EGL 라이브러리가 없으면 OSMesa(CPU 렌더)로 넘어간다. 이후 프로젝트도 `SPARSE_DIRS`와 실행 단계만 바꿔 같은 흐름을 쓴다.
+[`cloud/rehearsal.sh`](cloud/rehearsal.sh)가 처리하는 일은 다음과 같다. apt로 EGL/OSMesa·ffmpeg 설치, uv 설치, `00-setup`과 `common`만 sparse clone(PDF 90MB 제외), `uv sync --locked`, 점검 3종, 그리고 W&B 키가 있으면 업로드. MuJoCo는 EGL을 먼저 시도하고, 컨테이너에 NVIDIA EGL 라이브러리가 없으면 OSMesa(CPU 렌더)로 넘어간다. 이후 프로젝트도 `SPARSE_DIRS`와 실행 단계만 바꿔 같은 흐름을 쓴다.
 
 ## 남은 일
 
