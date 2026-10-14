@@ -67,6 +67,49 @@
 - 입력 토큰이 길어지게 된다. → 위치임베딩(학습된것)이 맞지 않게 된다.
 - 512 이미지면 패치수가 37 * 37 (Q2에서 답한 패딩방식인 경우) = 1369 가 된다. 위치표는 256 이므로, 학습된 위치표를 1369 길이에 맞게 수정해 주어야한다.
 - LLM 의 경우는 학습된 입력보다 긴 컨텍스트가 들어오는 경우, 위치표(GPT-2) 에서 벗어나더라도, 1차원 거리이므로, 거리 보간을 수행하면 되지만(상대 위치가 처리되는 모델은 별도 조정 필요없을듯? ), 이미지 패치는 2차원 정보가 포함되는 것을 고려하면, 16 * 16 -> 37 * 37 인 것을 고려한 2차원 보간이 필요하다
-- 보충(피드백 후 정리): 상대 위치(RoPE) 모델도 학습 길이를 넘기면 그대로는 안 된다. 위치 표가 없어 계산은 돌아가지만, 학습 때 본 적 없는 거리(회전 각도)가 나와 성능이 무너진다. 그래서 LLM의 문맥 확장도 위치를 학습 범위 안으로 눌러 넣는 위치 보간([2306.15595](https://arxiv.org/abs/2306.15595))이나 YaRN([2309.00071](https://arxiv.org/abs/2309.00071))으로 조정한다. ViT가 고해상도에서 위치 표를 2차원 보간하는 것(ViT 논문 §3.2)과 같은 생각이다.
+- (Claude) 보충: 상대 위치(RoPE) 모델도 학습 길이를 넘기면 그대로는 안 된다. 위치 표가 없어 계산은 돌아가지만, 학습 때 본 적 없는 거리(회전 각도)가 나와 성능이 무너진다. 그래서 LLM의 문맥 확장도 위치를 학습 범위 안으로 눌러 넣는 위치 보간([2306.15595](https://arxiv.org/abs/2306.15595))이나 YaRN([2309.00071](https://arxiv.org/abs/2309.00071))으로 조정한다. ViT가 고해상도에서 위치 표를 2차원 보간하는 것(ViT 논문 §3.2)과 같은 생각이다.
 
 #### 결과
+
+**Q1**
+
+- 256
+
+**Q2**
+
+- 729 (27*27) . 모델 구현에서는 패딩으로 채워서 올림하는 것이 아니라, 버림
+- (Claude) 근거: 출력의 `padding=valid`(덧대지 않음, 창이 이미지 안에 온전히 들어가는 위치만), 384 모델의 `Embedding(729, 1152)`. 출력 = ⌊(384 + 2·0 − 14)/14⌋ + 1 = 27이고, 27×14 = 378이라 오른쪽·아래 6픽셀이 버려진다. PyTorch `Conv2d`는 패딩 양을 사람이 정하고(정수, `"valid"`, 이동 간격 1일 때만 `"same"`) 입력에 맞춰 자동으로 덧대지 않는다. 예측한 28×28은 TensorFlow `padding="SAME"`처럼 ⌈384/14⌉ = 28이 되게 자동으로 덧대는 방식의 결과다.
+
+**Q3**
+
+- 512px 이미지를 그대로 넣으면 다음 에러가 난다.
+  ```text
+  The size of tensor a (1296) must match the size of tensor b (256) at non-singleton dimension 1
+  ```
+  - position table (256) 이 입력 토큰수와 맞지 않음
+- 현재 사용 모델의 forward option 중 `interpolate_pos_encoding=True` 를 사용하면, 보정 구현이 들어가 있음
+
+**패치 임베딩 비교와 허용 오차**
+
+- (Claude) float64로 두 구현을 비교하면 차이 1.2e-14 → 알고리즘이 같고, float32 차이는 반올림 오차뿐이다.
+- (Claude) 출력 하나는 K = 3×14×14 = 588항 내적, float32 단위 반올림 u = 2⁻²⁴ ≈ 6e-8. 반올림 오차의 보통 크기 √K·u·Σ|w·x| ≈ 1.7e-5, 최악 상한 K·u·Σ|w·x| ≈ 4.2e-4 (Σ|w·x| 최대 12.06).
+- (Claude) 실측 최대 오차 5.7e-6(CPU 5.5e-6과 같은 수준)으로 보통 크기 이하 → 허용 오차는 atol ≈ 2e-5 ~ 5e-5 하나로 두면 근거가 선다. NVIDIA GPU는 합성곱에 TF32(가수 10비트)를 기본으로 써서 상대 오차 1e-3 수준이 되므로 완화가 필요하지만, MPS float32는 CPU와 같은 수준이었다.
+
+**실행1 최종(포지션 인코딩 보간옵션준것)의 전체 출력**
+
+```text
+device: mps | image: (640, 480)
+patch_embedding: Conv2d(3, 1152, kernel_size=(14, 14), stride=(14, 14), padding=valid)
+position_embedding: Embedding(256, 1152)
+{'shape_mine': torch.Size([1, 256, 1152]), 'shape_hf': torch.Size([1, 256, 1152]), 'max_abs_err': tensor(5.7220e-06, device='mps:0', grad_fn=<MaxBackward1>), 'mean_abs_err': tensor(1.5992e-07, device='mps:0', grad_fn=<MeanBackward0>), 'atol': 1e-05, 'rtol': 0.0001, 'allclose': True}
+384 embedding
+patch_embedding: Conv2d(3, 1152, kernel_size=(14, 14), stride=(14, 14), padding=valid)
+position_embedding: Embedding(729, 1152)
+model | device | dtype | warmup | repeat | error | hidden_state_shape | timed | memory
+google/siglip-so400m-patch14-224 | cpu | torch.float32 | 2 | 5 |  | torch.Size([1, 256, 1152]) | 267.8910419344902 | ({'hidden_state_shape': torch.Size([1, 256, 1152])}, nan)
+google/siglip-so400m-patch14-224 | mps | torch.float32 | 2 | 5 |  | torch.Size([1, 256, 1152]) | 65.95487473532557 | ({'hidden_state_shape': torch.Size([1, 256, 1152])}, 13.0)
+google/siglip-so400m-patch14-384 | cpu | torch.float32 | 2 | 5 |  | torch.Size([1, 729, 1152]) | 721.4490831829607 | ({'hidden_state_shape': torch.Size([1, 729, 1152])}, nan)
+google/siglip-so400m-patch14-384 | mps | torch.float32 | 2 | 5 |  | torch.Size([1, 729, 1152]) | 178.2537503167987 | ({'hidden_state_shape': torch.Size([1, 729, 1152])}, 37.0)
+google/siglip-so400m-patch14-224 | cpu | torch.float32 | 2 | 5 |  | torch.Size([1, 1296, 1152]) | 1297.731916885823 | ({'hidden_state_shape': torch.Size([1, 1296, 1152])}, nan)
+google/siglip-so400m-patch14-224 | mps | torch.float32 | 2 | 5 |  | torch.Size([1, 1296, 1152]) | 329.6655840240419 | ({'hidden_state_shape': torch.Size([1, 1296, 1152])}, 66.0)
+```
