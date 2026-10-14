@@ -50,6 +50,8 @@
 
 ## 실행 기록
 
+> (Claude) 실행 2–5의 예측 질문은 [GUIDE.md](GUIDE.md)에서 옮겨 왔다. 질문 문구가 바뀌면 GUIDE가 기준이다.
+
 ### 실행 1 — 패치화
 
 #### 예측
@@ -112,4 +114,136 @@ google/siglip-so400m-patch14-384 | cpu | torch.float32 | 2 | 5 |  | torch.Size([
 google/siglip-so400m-patch14-384 | mps | torch.float32 | 2 | 5 |  | torch.Size([1, 729, 1152]) | 178.2537503167987 | ({'hidden_state_shape': torch.Size([1, 729, 1152])}, 37.0)
 google/siglip-so400m-patch14-224 | cpu | torch.float32 | 2 | 5 |  | torch.Size([1, 1296, 1152]) | 1297.731916885823 | ({'hidden_state_shape': torch.Size([1, 1296, 1152])}, nan)
 google/siglip-so400m-patch14-224 | mps | torch.float32 | 2 | 5 |  | torch.Size([1, 1296, 1152]) | 329.6655840240419 | ({'hidden_state_shape': torch.Size([1, 1296, 1152])}, 66.0)
+```
+
+### 실행 2 — zero-shot·검색, softmax vs sigmoid
+
+#### 예측
+
+**Q1. SigLIP으로 zero-shot 분류를 할 때 클래스별 확률을 모두 더하면 1이 되나? 안 된다면 분류 결과를 어떻게 읽어야 하나?**
+
+- 
+
+**Q2. 인코더를 얼리고 작은 projection head를 학습할 때, 배치를 줄이면 softmax 손실과 sigmoid 손실 중 어느 쪽 성능이 더 많이 떨어질까?**
+
+- 
+
+**Q3. processor 기본값으로 `'a cat'`을 토큰화하면 토큰이 4개뿐이다. SigLIP 텍스트 인코더는 학습 때 텍스트를 어떻게 패딩했나(모델 카드·HF 문서 확인)? 텍스트 임베딩이 시퀀스의 어느 위치에서 나오는지 HF 구현에서 찾아보면, 패딩 방식에 따라 zero-shot 결과가 달라지는 이유를 설명할 수 있다.**
+
+- 
+
+#### 결과
+
+**Q1**
+
+- 
+
+**Q2**
+
+- 
+
+**Q3**
+
+- 
+
+**전체 출력**
+
+```text
+```
+
+### 실행 3 — SigLIP vs DINOv2 패치 특징 PCA
+
+#### 예측
+
+**Q1. 어느 모델의 패치 특징 PCA에서 물체 경계·부분이 더 또렷할까? 학습 목적으로 설명해 본다.**
+
+- 
+
+**Q2. SigLIP 비전 모델에는 분류 토큰(CLS)이 없다. 그럼 이미지 전체 표현은 어디서 나오고, 패치 특징은 어디서 꺼내나?**
+
+- 
+
+**Q3. DINOv2(`facebook/dinov2-small`)의 출력 토큰 수는 패치 수보다 많다. 왜 그런가?**
+
+- 
+
+#### 결과
+
+**Q1**
+
+- 
+
+**Q2**
+
+- 
+
+**Q3**
+
+- 
+
+**전체 출력**
+
+```text
+```
+
+### 실행 4 — tiny VLM (projector만 학습)
+
+#### 예측
+
+**Q1. 두 모델 config에서 hidden size를 찾아, 2층 MLP projector의 학습 파라미터 수를 계산한다. 전체 파라미터 중 몇 %인가?**
+
+- 
+
+**Q2. 이미지 1장 = 토큰 몇 개, 캡션 1개 = 토큰 몇 개인가? 이 비율에서 loss는 어느 토큰에만 걸어야 하나? LLM SFT의 무엇과 같은가?**
+
+- 
+
+**Q3. 학습 전(무작위 projector) 캡션 loss는 대략 어느 수준일까? 이미지 없이 캡션만 넣은 loss와 비교하면 어떤 관계여야 하나?**
+
+- 
+
+#### 결과
+
+**Q1**
+
+- 
+
+**Q2**
+
+- 
+
+**Q3**
+
+- 
+
+**전체 출력**
+
+```text
+```
+
+### 실행 5 — causal vs prefix-LM mask
+
+#### 예측
+
+**Q1. SmolLM2는 causal로 사전학습됐다. 여기에 prefix-LM mask를 씌우면 무엇이 어긋나나? PaliGemma는 이 문제를 어떻게 피했나?**
+
+- 
+
+**Q2. 공정한 비교를 위해 무엇을 고정해야 하나?**
+
+- 
+
+#### 결과
+
+**Q1**
+
+- 
+
+**Q2**
+
+- 
+
+**전체 출력**
+
+```text
 ```
