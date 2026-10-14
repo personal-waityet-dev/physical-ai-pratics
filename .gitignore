@@ -1,6 +1,8 @@
 # OS·도구가 남기는 파일
 .DS_Store
 MUJOCO_LOG.TXT
+*.swp
+*.swo
 
 # Python / uv — 가상환경은 프로젝트마다 .venv/ (uv.lock은 커밋한다)
 .venv/
