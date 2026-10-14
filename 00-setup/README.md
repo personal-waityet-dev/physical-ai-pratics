@@ -49,7 +49,7 @@ uv run python scripts/log_wandb.py               # 위 결과를 W&B run 하나�
 
 **PyTorch / MPS**
 - **float64 미지원.** numpy 배열(기본 float64)을 그대로 `.to("mps")`하면 `TypeError`가 난다. 데이터 로더에서 `float32`로 변환하는 습관을 들인다.
-- **MPS 커널이 없는 연산**(torch 2.11 실측): `linalg.qr`, `linalg.eigh`, `linalg.lstsq`, `linalg.eig`, `linalg.matrix_exp`, `ctc_loss`. 따라서 `torch.pca_lowrank`와 `nn.init.orthogonal_`도 MPS 텐서에서는 실패한다(실측). **P01의 특징 PCA 같은 분해 계산은 CPU로 옮겨서** 하거나 폴백을 켠다.
+- **MPS 커널이 없는 연산**(torch 2.11 실측): `linalg.qr`, `linalg.eigh`, `linalg.lstsq`, `linalg.eig`, `linalg.matrix_exp`, `ctc_loss`. 따라서 `torch.pca_lowrank`와 `nn.init.orthogonal_`도 MPS 텐서에서는 실패한다(실측). **P01의 특징 PCA 같은 분해 계산은 CPU로 옮겨서** 하거나 폴백을 켠다. torch 2.14에서는 `linalg.qr`·`linalg.eigh`·`pca_lowrank`·`orthogonal_`이 MPS에서 동작한다(2026-10-14, P01 환경에서 확인). 연산 지원은 torch 버전에 따라 바뀌므로 프로젝트의 torch 버전에서 다시 확인한다.
 - `PYTORCH_ENABLE_MPS_FALLBACK=1`은 커널이 없는 연산만 CPU로 보내 실행한다(장치 간 복사 포함, 결과는 맞지만 느리다). **torch를 import하기 전에** 설정해야 효과가 있다. 기본은 꺼 두어서 무엇이 CPU로 가는지 에러로 알 수 있게 하고, 서드파티 정책 코드(LeRobot 등)를 돌릴 때만 켠다.
 - **메모리 상한은 18GB가 아니라 13.3GB**다. §9.2에서 "빠듯함"으로 분류한 π0/π0.5 추론(≈14GB)은 이 상한을 넘으므로, 기본 계획을 클라우드로 둔다.
 - bf16 이득이 작다(fp32 대비 약 1.2배). Mac에서는 정밀도를 낮춰 얻는 속도보다 모델·배치 크기를 줄이는 쪽이 효과가 크다.
