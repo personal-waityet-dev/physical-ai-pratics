@@ -21,6 +21,8 @@
 - 로컬은 Apple M3 Pro 18GB(MPS, NVIDIA 없음)다. 무엇을 로컬에서, 무엇을 클라우드에서 할지는 ROADMAP §9.2를 따른다.
 - 프로젝트 디렉토리마다 독립 uv 환경이다(`pyproject.toml` + `.python-version` + `uv.lock`). 그 디렉토리에서 `uv run ...`으로 실행하고, 시스템 `python3`(3.9)는 쓰지 않는다.
 - MPS·MuJoCo·LeRobot·opencv 관련 에러가 나면 먼저 [00-setup/README.md](00-setup/README.md)의 "발견한 것"을 확인한다.
+- **IMPORTANT: `pkill`·`killall`을 패턴으로 쓰지 않는다.** Claude가 종료하는 프로세스는 자기가 띄운 PID만이다. 2026-10-21에 패턴 `pkill` 하나로 사용자 앱이 전부 종료된 사고가 있었다.
+- 모델을 MPS에 올리는 실행(Claude가 돌리는 것, 사용자에게 안내하는 명령 모두)은 MPS 메모리 상한을 걸고 돌린다. 방법과 값은 00-setup/README.md의 "Mac 자원 안전 규약"을 따른다.
 - 클라우드 GPU는 RunPod이다. Pod 생성·종료는 사용자가 콘솔에서 하고, 절차와 주의점은 00-setup/README.md의 "클라우드 리허설"에 있다. Pod로 하는 일이 끝나면 terminate를 상기시킨다(켜져 있는 동안 과금된다).
 - 실험 기록은 W&B를 쓴다. 이름 규칙은 00-setup/README.md의 "실험 기록 규약"을 따른다.
 

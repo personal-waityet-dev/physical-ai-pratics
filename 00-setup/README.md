@@ -83,6 +83,29 @@ uv run python scripts/log_wandb.py               # 위 결과를 W&B run 하나�
 - **오프라인**: 네트워크가 없거나 키를 넣기 싫은 환경에서는 `WANDB_MODE=offline`으로 기록하고 나중에 `wandb sync`로 올린다.
 - `wandb`는 각 프로젝트의 `pyproject.toml`에 필요할 때 추가한다. 00-setup에는 기록 경로 점검용으로 들어 있다.
 
+## Mac 자원 안전 규약
+
+**계기 (2026-10-21 11:04)**: 열려 있던 앱이 거의 전부 한꺼번에 종료됐다. 사용자는 MPS 실행 때문이라고 의심했지만, 원인은 다른 저장소의 Claude 세션이 실행한 `pkill -f 'cat' -n`이었다. 시스템 로그에 `exited due to SIGTERM | sent by pkill[35349]`이 수십 줄 남았고, 그 세션 기록의 실행 시각과 같았다. 이유는 두 가지다.
+- macOS(BSD) `pkill`은 패턴 **뒤**에 오는 `-n`을 옵션이 아니라 두 번째 패턴으로 읽는다.
+- `-f`는 전체 명령줄에서 부분 문자열을 찾는다. 그래서 `cat`이 `Applications`, `notification`, `location`에 모두 걸렸다. 같은 조건의 `pgrep -f cat -n`이 63개를 잡았다.
+
+메모리 부족 흔적(jetsam 보고서, 메모리 압력 종료)은 없었다. 다만 아래 이유로 MPS 실행도 시스템 전체를 멈출 수 있어서 규약을 함께 둔다.
+
+**프로세스 종료**
+- `pkill`·`killall`을 패턴으로 쓰지 않는다. 자기가 띄운 프로세스는 PID로 `kill <PID>` 한다.
+- 이름으로 찾아야 하면 먼저 `pgrep -lf '<구체적인 패턴>'`으로 목록을 본다. 대상이 맞을 때만 그 PID를 종료한다. 옵션은 항상 패턴 앞에 둔다.
+
+**MPS 메모리 상한**
+- Apple Silicon은 통합 메모리라서, MPS 할당이 다른 앱과 같은 18GB를 나눠 쓴다.
+- PyTorch MPS 할당 상한의 기본값은 `PYTORCH_MPS_HIGH_WATERMARK_RATIO=1.7`이다. 이 값은 `recommended_max_memory`(13.3GB)에 곱하는 배율이라 상한이 약 22.6GB가 되고, 물리 메모리보다 크다. 그래서 기본 설정에서는 PyTorch가 OOM 에러를 내기 전에 시스템 전체가 스왑·압축으로 느려지거나 멈출 수 있다.
+- **모델을 MPS에 올리는 스크립트는 상한을 걸고 돌린다.** 기본값은 0.6(약 8GB)으로 한다. 더 필요하면 다른 앱을 줄이고 0.8(약 10.7GB)까지 올린다. `0.0`(무제한)은 쓰지 않는다. 상한을 넘기면 시스템 대신 스크립트만 `MPS backend out of memory`로 멈춘다(2026-10-21, torch 2.14.1에서 확인). 방법은 둘 중 하나다.
+  - 코드: MPS에 처음 할당하기 전에 `torch.mps.set_per_process_memory_fraction(0.6)`
+  - 환경변수: `PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.6 PYTORCH_MPS_LOW_WATERMARK_RATIO=0.5 uv run python ...`. **하한(LOW, 기본 1.4)도 함께 낮춰야 한다.** HIGH만 낮추면 `invalid low watermark ratio 1.4` 에러가 난다.
+- 이 상한은 MPS 할당에만 걸린다. CPU 쪽 메모리(예: 데이터셋 이미지를 PIL 목록으로 전부 디코딩해 들고 있는 것, MPS로 옮기기 전 CPU에 올린 가중치)는 막지 못한다. 학습 데이터 전체를 한 번에 디코딩하는 코드는 배치 단위로 바꾸는 것을 검토한다.
+
+**무거운 실행 전 확인**
+- `memory_pressure | tail -1`의 여유 비율이나 활동 모니터의 메모리 압력 그래프를 본다. 노란색·빨간색이면 다른 앱을 줄인다. 2026-10-16 jetsam 보고서에서는 가상 머신 프로세스(`com.apple.Virtualization.VirtualMachine`)가 8.2GB를 차지하고 있었다.
+
 ## 클라우드 리허설
 
 목표는 "인스턴스 생성 → git으로 코드 동기화 → 스크립트 실행 → 결과 회수 → 인스턴스 종료"를 한 번 끝까지 해 보는 것이다. 예상 비용은 RTX 4090 30분, $0.5 미만이다.
