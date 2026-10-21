@@ -16,6 +16,9 @@ __pycache__/
 .env
 .env.*
 
+# Claude Code 개인 로컬 설정 (공용 .claude/settings.json은 커밋한다)
+.claude/settings.local.json
+
 # 대용량 산출물 (ROADMAP §9.3) — 커밋하지 않고, 재현 명령을 각 README에 남긴다
 data/
 checkpoints/
