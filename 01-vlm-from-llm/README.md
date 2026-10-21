@@ -170,6 +170,14 @@ google/siglip-so400m-patch14-224 | mps | torch.float32 | 2 | 5 |  | torch.Size([
 
 **관측: 패딩 방식별 차이**
 
+STL-10 시험 1000장, 프롬프트 `"a photo of a {c}."` 10개. `longest`는 프롬프트마다 `"find a photo of a {c}."`와 무작위로 섞어 한 배치로 넣었다(실행마다 조합이 다름).
+
+| 패딩 | zero-shot 정확도 (`step2.log`) | zero-shot 정확도 (`step2-02.log`) | 클래스별 확률 합의 평균 (`step2-02.log`) |
+|---|---|---|---|
+| `max_length` | 0.987 | 0.987 | 0.1734 |
+| `longest` | 0.254 | 0.300 | 0.0027 |
+| 패딩 없음 | 0.0 | 0.0 | 0.0002 |
+
 - 
 
 **전체 출력**
